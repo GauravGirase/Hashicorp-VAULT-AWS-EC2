@@ -506,7 +506,7 @@ resource "aws_instance" "vault_nodes" {
   count = 3
 
   ami           = data.aws_ami.ubuntu.id
-  instance_type = "t3.medium"
+  instance_type = "t3.medium" # m6i.xlarge
 
   subnet_id = element([
     aws_subnet.private_1.id,
@@ -533,3 +533,35 @@ resource "aws_instance" "vault_nodes" {
     Name = "vault-node-${count.index + 1}"
   }
 }
+
+# vault.internal resolve to your AWS Network Load Balancer from multiple VPCs
+resource "aws_route53_zone" "vault_internal" {
+  name = "vault.internal"
+
+  vpc {
+    vpc_id = aws_vpc.main.id
+  }
+
+  comment = "Private hosted zone for Vault"
+}
+
+resource "aws_route53_record" "vault_dns" {
+  zone_id = aws_route53_zone.vault_internal.zone_id
+  name    = "vault.internal"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.vault_nlb.dns_name
+    zone_id                = aws_lb.vault_nlb.zone_id
+    evaluate_target_health = true
+  }
+}
+
+#To allow other VPCs to resolve vault.internal, associate them with the hosted zone.
+/*
+resource "aws_route53_zone_association" "vpc2" {
+  zone_id = aws_route53_zone.vault_internal.zone_id
+  vpc_id  = aws_vpc.vpc2.id
+}
+*/
+
