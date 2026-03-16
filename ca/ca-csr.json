@@ -1,0 +1,14 @@
+{
+    "CN": "Vault Internal CA",
+    "key": {
+        "algo": "rsa",
+        "size": 4096
+    },
+    "names": [
+        {
+            "O": "gauravgirase",
+            "OU": "Infrastructure",
+            "C": "IN"
+        }
+    ]
+}

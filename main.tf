@@ -102,11 +102,6 @@ resource "aws_iam_instance_profile" "vault_instance_profile" {
   role = aws_iam_role.vault_ec2_role.name
 }
 
-# Networking 
-provider "aws" {
-  region = "ap-south-1"
-}
-
 # VPC
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
@@ -503,7 +498,7 @@ data "aws_ami" "ubuntu" {
 }
 
 resource "aws_instance" "vault_nodes" {
-  count = 3
+  count = 0
 
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t3.medium" # m6i.xlarge
@@ -581,7 +576,7 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "vault_vpc" {
 
 resource "aws_route" "vault_to_tgw" {
   route_table_id         = aws_route_table.private_rt.id
-  destination_cidr_block = "10.20.0.0/16"  # application vpc cidr
+  destination_cidr_block = "10.0.0.0/26"  # application vpc cidr
   transit_gateway_id     = aws_ec2_transit_gateway.main.id
 }
 

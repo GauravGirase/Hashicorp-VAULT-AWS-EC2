@@ -1,0 +1,14 @@
+{
+    "CN": "vault-node-1",
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "hosts": [
+        "vault-node-1",
+        "10.0.1.10",
+        "vault.internal",
+        "localhost",
+        "127.0.0.1"
+    ]
+}
