@@ -419,3 +419,62 @@ resource "aws_s3_bucket_lifecycle_configuration" "vault_backup" {
   }
 }
 
+# Provision 3 EC2 instances
+resource "aws_kms_key" "ebs_encryption" {
+  description             = "KMS key for encrypting EBS volumes"
+  deletion_window_in_days = 10
+  enable_key_rotation     = true
+}
+
+resource "aws_kms_alias" "ebs_alias" {
+  name          = "alias/ebs-encryption"
+  target_key_id = aws_kms_key.ebs_encryption.key_id
+}
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  owners = ["099720109477"] # Canonical
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+resource "aws_instance" "vault_nodes" {
+  count = 3
+
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t3.medium"
+
+  subnet_id = element([
+    aws_subnet.private_1.id,
+    aws_subnet.private_2.id,
+    aws_subnet.private_3.id
+  ], count.index)
+
+  vpc_security_group_ids = [
+    aws_security_group.vault_nodes.id
+  ]
+
+  iam_instance_profile = aws_iam_instance_profile.vault_instance_profile.name
+
+  user_data = file("${path.module}/setup/node-${count.index}.sh")
+
+  root_block_device {
+    volume_size = 50
+    volume_type = "gp3"
+    encrypted   = true
+    kms_key_id  = aws_kms_key.ebs_encryption.arn
+  }
+
+  tags = {
+    Name = "vault-node-${count.index + 1}"
+  }
+}
