@@ -408,11 +408,13 @@ resource "aws_lb_listener" "vault_listener" {
   }
 }
 
-# resource "aws_lb_target_group_attachment" "vault_nodes" {
-#   target_group_arn = aws_lb_target_group.vault_tg.arn
-#   target_id        = aws_instance.vault_nodes[*].id
-#   port             = 8200
-# }
+resource "aws_lb_target_group_attachment" "vault_nodes" {
+  for_each = { for idx, inst in aws_instance.vault_nodes : idx => inst }
+
+  target_group_arn = aws_lb_target_group.vault_tg.arn
+  target_id        = each.value.id
+  port             = 8200
+}
 
 # Create an S3 bucket for backing up Vault Raft snapshots
 /*
