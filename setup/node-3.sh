@@ -15,15 +15,13 @@ apt-get install -y unzip awscli wget
 # Create vault user
 useradd --system --home /etc/vault.d --shell /bin/false vault
 
-cd /tmp
 
-aws s3 cp s3://my-internal-artifacts/vault/vault_1.15.5_linux_amd64.zip .
-
+curl -O https://releases.hashicorp.com/vault/1.15.5/vault_1.15.5_linux_amd64.zip
 unzip vault_1.15.5_linux_amd64.zip
-mv vault /usr/local/bin/
-chmod +x /usr/local/bin/vault
-
+sudo mv vault /usr/local/bin/
+sudo chmod +x /usr/local/bin/vault
 vault --version
+
 
 # Install CloudWatch Agent
 wget https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
