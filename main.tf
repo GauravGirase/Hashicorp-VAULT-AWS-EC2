@@ -557,8 +557,36 @@ resource "aws_route53_record" "vault_dns" {
   }
 }
 
-#To allow other VPCs to resolve vault.internal, associate them with the hosted zone.
+# Create Transit Gateway
+resource "aws_ec2_transit_gateway" "main" {
+  description = "Main Transit Gateway"
+
+  default_route_table_association = "enable"
+  default_route_table_propagation = "enable"
+
+  tags = {
+    Name = "main-tgw"
+  }
+}
+# Attach First VPC (Vault VPC)
+resource "aws_ec2_transit_gateway_vpc_attachment" "vault_vpc" {
+  transit_gateway_id = aws_ec2_transit_gateway.main.id
+  vpc_id             = aws_vpc.main.id
+  subnet_ids         = [aws_subnet.private_1.id, aws_subnet.private_2.id, aws_subnet.private_3.id]
+
+  tags = {
+    Name = "vault-vpc-attachment"
+  }
+}
+
+resource "aws_route" "vault_to_tgw" {
+  route_table_id         = aws_route_table.private_rt.id
+  destination_cidr_block = "10.20.0.0/16"  # application vpc cidr
+  transit_gateway_id     = aws_ec2_transit_gateway.main.id
+}
+
 /*
+#To allow other VPCs to resolve vault.internal, associate them with the hosted zone.
 resource "aws_route53_zone_association" "vpc2" {
   zone_id = aws_route53_zone.vault_internal.zone_id
   vpc_id  = aws_vpc.vpc2.id
