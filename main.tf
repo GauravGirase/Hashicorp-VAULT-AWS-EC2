@@ -255,7 +255,7 @@ resource "aws_security_group" "endpoint_sg" {
 
 resource "aws_vpc_endpoint" "kms" {
   vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.us-east-1.kms"
+  service_name      = "com.amazonaws.ap-south-1.kms"
   vpc_endpoint_type = "Interface"
 
   subnet_ids = [
@@ -271,7 +271,7 @@ resource "aws_vpc_endpoint" "kms" {
 
 resource "aws_vpc_endpoint" "ssm" {
   vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.us-east-1.ssm"
+  service_name      = "com.amazonaws.ap-south-1.ssm"
   vpc_endpoint_type = "Interface"
 
   subnet_ids = [
@@ -285,7 +285,7 @@ resource "aws_vpc_endpoint" "ssm" {
 
 resource "aws_vpc_endpoint" "ssmmessages" {
   vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.us-east-1.ssmmessages"
+  service_name      = "com.amazonaws.ap-south-1.ssmmessages"
   vpc_endpoint_type = "Interface"
 
   subnet_ids = [
@@ -299,7 +299,7 @@ resource "aws_vpc_endpoint" "ssmmessages" {
 
 resource "aws_vpc_endpoint" "ec2messages" {
   vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.us-east-1.ec2messages"
+  service_name      = "com.amazonaws.ap-south-1.ec2messages"
   vpc_endpoint_type = "Interface"
 
   subnet_ids = [
@@ -313,7 +313,7 @@ resource "aws_vpc_endpoint" "ec2messages" {
 
 resource "aws_vpc_endpoint" "cloudwatch_logs" {
   vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.us-east-1.logs"
+  service_name      = "com.amazonaws.ap-south-1.logs"
   vpc_endpoint_type = "Interface"
 
   subnet_ids = [
@@ -327,7 +327,7 @@ resource "aws_vpc_endpoint" "cloudwatch_logs" {
 
 resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.us-east-1.s3"
+  service_name      = "com.amazonaws.ap-south-1.s3"
   vpc_endpoint_type = "Gateway" # S3 uses Gateway endpoint.
 
   route_table_ids = [
@@ -414,171 +414,171 @@ resource "aws_lb_listener" "vault_listener" {
 #   port             = 8200
 # }
 
-# # Create an S3 bucket for backing up Vault Raft snapshots
-# /*
-# vault operator raft snapshot save backup.snap
-# aws s3 cp backup.snap s3://vault-raft-backups-prod/
-# */
+# Create an S3 bucket for backing up Vault Raft snapshots
+/*
+vault operator raft snapshot save backup.snap
+aws s3 cp backup.snap s3://vault-raft-backups-prod/
+*/
 
-# resource "aws_s3_bucket" "vault_backup" {
-#   bucket = "vault-raft-backups-prod"
+resource "aws_s3_bucket" "vault_backup" {
+  bucket = "vault-raft-backups-prod"
 
-#   tags = {
-#     Name        = "vault-raft-backups"
-#     Environment = "prod"
-#   }
-# }
+  tags = {
+    Name        = "vault-raft-backups"
+    Environment = "prod"
+  }
+}
 
-# resource "aws_s3_bucket_versioning" "vault_backup" {
-#   bucket = aws_s3_bucket.vault_backup.id
+resource "aws_s3_bucket_versioning" "vault_backup" {
+  bucket = aws_s3_bucket.vault_backup.id
 
-#   versioning_configuration {
-#     status = "Enabled"
-#   }
-# }
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
 
-# resource "aws_s3_bucket_server_side_encryption_configuration" "vault_backup" {
-#   bucket = aws_s3_bucket.vault_backup.id
+resource "aws_s3_bucket_server_side_encryption_configuration" "vault_backup" {
+  bucket = aws_s3_bucket.vault_backup.id
 
-#   rule {
-#     apply_server_side_encryption_by_default {
-#       sse_algorithm = "aws:kms"
-#     }
-#   }
-# }
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "aws:kms"
+    }
+  }
+}
 
-# resource "aws_s3_bucket_public_access_block" "vault_backup" {
-#   bucket = aws_s3_bucket.vault_backup.id
+resource "aws_s3_bucket_public_access_block" "vault_backup" {
+  bucket = aws_s3_bucket.vault_backup.id
 
-#   block_public_acls       = true
-#   block_public_policy     = true
-#   ignore_public_acls      = true
-#   restrict_public_buckets = true
-# }
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
 
-# resource "aws_s3_bucket_lifecycle_configuration" "vault_backup" {
-#   bucket = aws_s3_bucket.vault_backup.id
+resource "aws_s3_bucket_lifecycle_configuration" "vault_backup" {
+  bucket = aws_s3_bucket.vault_backup.id
 
-#   rule {
-#     id     = "vault-backup-retention"
-#     status = "Enabled"
+  rule {
+    id     = "vault-backup-retention"
+    status = "Enabled"
 
-#     expiration {
-#       days = 30
-#     }
-#   }
-# }
+    expiration {
+      days = 30
+    }
+  }
+}
 
-# # Provision 3 EC2 instances
-# resource "aws_kms_key" "ebs_encryption" {
-#   description             = "KMS key for encrypting EBS volumes"
-#   deletion_window_in_days = 10
-#   enable_key_rotation     = true
-# }
+# Provision 3 EC2 instances
+resource "aws_kms_key" "ebs_encryption" {
+  description             = "KMS key for encrypting EBS volumes"
+  deletion_window_in_days = 10
+  enable_key_rotation     = true
+}
 
-# resource "aws_kms_alias" "ebs_alias" {
-#   name          = "alias/ebs-encryption"
-#   target_key_id = aws_kms_key.ebs_encryption.key_id
-# }
+resource "aws_kms_alias" "ebs_alias" {
+  name          = "alias/ebs-encryption"
+  target_key_id = aws_kms_key.ebs_encryption.key_id
+}
 
-# data "aws_ami" "ubuntu" {
-#   most_recent = true
+data "aws_ami" "ubuntu" {
+  most_recent = true
 
-#   owners = ["099720109477"] # Canonical
+  owners = ["099720109477"] # Canonical
 
-#   filter {
-#     name   = "name"
-#     values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
-#   }
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
 
-#   filter {
-#     name   = "virtualization-type"
-#     values = ["hvm"]
-#   }
-# }
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
 
-# resource "aws_instance" "vault_nodes" {
-#   count = 0
+resource "aws_instance" "vault_nodes" {
+  count = 3
 
-#   ami           = data.aws_ami.ubuntu.id
-#   instance_type = "t3.medium" # m6i.xlarge
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t3.medium" # m6i.xlarge
 
-#   subnet_id = element([
-#     aws_subnet.private_1.id,
-#     aws_subnet.private_2.id,
-#     aws_subnet.private_3.id
-#   ], count.index)
+  subnet_id = element([
+    aws_subnet.private_1.id,
+    aws_subnet.private_2.id,
+    aws_subnet.private_3.id
+  ], count.index)
 
-#   vpc_security_group_ids = [
-#     aws_security_group.vault_nodes.id
-#   ]
+  vpc_security_group_ids = [
+    aws_security_group.vault_nodes.id
+  ]
 
-#   iam_instance_profile = aws_iam_instance_profile.vault_instance_profile.name
+  iam_instance_profile = aws_iam_instance_profile.vault_instance_profile.name
 
-#   user_data = file("${path.module}/setup/node-${count.index}.sh")
+  user_data = file("${path.module}/setup/node-${count.index}.sh")
 
-#   root_block_device {
-#     volume_size = 50
-#     volume_type = "gp3"
-#     encrypted   = true
-#     kms_key_id  = aws_kms_key.ebs_encryption.arn
-#   }
+  root_block_device {
+    volume_size = 50
+    volume_type = "gp3"
+    encrypted   = true
+    kms_key_id  = aws_kms_key.ebs_encryption.arn
+  }
 
-#   tags = {
-#     Name = "vault-node-${count.index + 1}"
-#   }
-# }
+  tags = {
+    Name = "vault-node-${count.index + 1}"
+  }
+}
 
-# # vault.internal resolve to your AWS Network Load Balancer from multiple VPCs
-# resource "aws_route53_zone" "vault_internal" {
-#   name = "vault.internal"
+# vault.internal resolve to your AWS Network Load Balancer from multiple VPCs
+resource "aws_route53_zone" "vault_internal" {
+  name = "vault.internal"
 
-#   vpc {
-#     vpc_id = aws_vpc.main.id
-#   }
+  vpc {
+    vpc_id = aws_vpc.main.id
+  }
 
-#   comment = "Private hosted zone for Vault"
-# }
+  comment = "Private hosted zone for Vault"
+}
 
-# resource "aws_route53_record" "vault_dns" {
-#   zone_id = aws_route53_zone.vault_internal.zone_id
-#   name    = "vault.internal"
-#   type    = "A"
+resource "aws_route53_record" "vault_dns" {
+  zone_id = aws_route53_zone.vault_internal.zone_id
+  name    = "vault.internal"
+  type    = "A"
 
-#   alias {
-#     name                   = aws_lb.vault_nlb.dns_name
-#     zone_id                = aws_lb.vault_nlb.zone_id
-#     evaluate_target_health = true
-#   }
-# }
+  alias {
+    name                   = aws_lb.vault_nlb.dns_name
+    zone_id                = aws_lb.vault_nlb.zone_id
+    evaluate_target_health = true
+  }
+}
 
-# # Create Transit Gateway
-# resource "aws_ec2_transit_gateway" "main" {
-#   description = "Main Transit Gateway"
+# Create Transit Gateway
+resource "aws_ec2_transit_gateway" "main" {
+  description = "Main Transit Gateway"
 
-#   default_route_table_association = "enable"
-#   default_route_table_propagation = "enable"
+  default_route_table_association = "enable"
+  default_route_table_propagation = "enable"
 
-#   tags = {
-#     Name = "main-tgw"
-#   }
-# }
-# # Attach First VPC (Vault VPC)
-# resource "aws_ec2_transit_gateway_vpc_attachment" "vault_vpc" {
-#   transit_gateway_id = aws_ec2_transit_gateway.main.id
-#   vpc_id             = aws_vpc.main.id
-#   subnet_ids         = [aws_subnet.private_1.id, aws_subnet.private_2.id, aws_subnet.private_3.id]
+  tags = {
+    Name = "main-tgw"
+  }
+}
+# Attach First VPC (Vault VPC)
+resource "aws_ec2_transit_gateway_vpc_attachment" "vault_vpc" {
+  transit_gateway_id = aws_ec2_transit_gateway.main.id
+  vpc_id             = aws_vpc.main.id
+  subnet_ids         = [aws_subnet.private_1.id, aws_subnet.private_2.id, aws_subnet.private_3.id]
 
-#   tags = {
-#     Name = "vault-vpc-attachment"
-#   }
-# }
+  tags = {
+    Name = "vault-vpc-attachment"
+  }
+}
 
-# resource "aws_route" "vault_to_tgw" {
-#   route_table_id         = aws_route_table.private_rt.id
-#   destination_cidr_block = "10.0.0.0/26"  # application vpc cidr
-#   transit_gateway_id     = aws_ec2_transit_gateway.main.id
-# }
+resource "aws_route" "vault_to_tgw" {
+  route_table_id         = aws_route_table.private_rt.id
+  destination_cidr_block = "10.0.0.0/26"  # application vpc cidr
+  transit_gateway_id     = aws_ec2_transit_gateway.main.id
+}
 
 # /*
 # #To allow other VPCs to resolve vault.internal, associate them with the hosted zone.
