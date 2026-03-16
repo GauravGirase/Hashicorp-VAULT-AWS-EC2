@@ -410,7 +410,7 @@ resource "aws_lb_listener" "vault_listener" {
 
 resource "aws_lb_target_group_attachment" "vault_nodes" {
   target_group_arn = aws_lb_target_group.vault_tg.arn
-  target_id        = aws_instance.vault.id
+  target_id        = aws_instance.vault_nodes[*].id
   port             = 8200
 }
 
