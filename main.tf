@@ -515,7 +515,7 @@ resource "aws_instance" "vault_nodes" {
 
   iam_instance_profile = aws_iam_instance_profile.vault_instance_profile.name
 
-  user_data = file("${path.root}/setup/node-${count.index}.sh")
+  user_data = file("${path.module}/setup/node-${count.index}.sh")
 
   root_block_device {
     volume_size = 50
