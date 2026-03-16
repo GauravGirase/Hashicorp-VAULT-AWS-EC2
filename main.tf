@@ -578,7 +578,7 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "vault_vpc" {
 
 resource "aws_route" "vault_to_tgw" {
   route_table_id         = aws_route_table.private_rt.id
-  destination_cidr_block = "10.0.0.0/26"  # application vpc cidr
+  destination_cidr_block = "10.1.0.0/24"  # application vpc cidr
   transit_gateway_id     = aws_ec2_transit_gateway.main.id
 }
 
