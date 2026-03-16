@@ -423,7 +423,7 @@ aws s3 cp backup.snap s3://vault-raft-backups-prod/
 */
 
 resource "aws_s3_bucket" "vault_backup" {
-  bucket = "vault-raft-backups-prod"
+  bucket = "vault-raft-backups-prod-gaurav17march2026"
 
   tags = {
     Name        = "vault-raft-backups"
