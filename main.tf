@@ -285,4 +285,81 @@ resource "aws_vpc_endpoint" "s3" {
   ]
 }
 
+# Security Groups for Vault nodes and a Network Load Balancer
+resource "aws_security_group" "vault_nodes" {
+  name   = "vault-nodes-sg"
+  vpc_id = aws_vpc.main.id
 
+  # Vault API access from NLB
+  ingress {
+    description = "Vault API from NLB"
+    from_port   = 8200
+    to_port     = 8200
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
+  }
+
+  # Vault cluster communication
+  ingress {
+    description = "Vault cluster communication"
+    from_port   = 8201
+    to_port     = 8201
+    protocol    = "tcp"
+    self        = true
+  }
+
+  # Outbound traffic
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "vault-nodes-sg"
+  }
+}
+
+resource "aws_lb" "vault_nlb" {
+  name               = "vault-nlb"
+  internal           = true
+  load_balancer_type = "network"
+
+  subnets = [
+    aws_subnet.private_1.id,
+    aws_subnet.private_2.id,
+    aws_subnet.private_3.id
+  ]
+
+  enable_cross_zone_load_balancing = true
+}
+
+resource "aws_lb_target_group" "vault_tg" {
+  name     = "vault-target-group"
+  port     = 8200
+  protocol = "TCP"
+  vpc_id   = aws_vpc.main.id
+
+  health_check {
+    port     = "8200"
+    protocol = "TCP"
+  }
+}
+
+resource "aws_lb_listener" "vault_listener" {
+  load_balancer_arn = aws_lb.vault_nlb.arn
+  port              = 8200
+  protocol          = "TCP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.vault_tg.arn
+  }
+}
+
+resource "aws_lb_target_group_attachment" "vault_nodes" {
+  target_group_arn = aws_lb_target_group.vault_tg.arn
+  target_id        = aws_instance.vault.id
+  port             = 8200
+}
