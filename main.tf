@@ -363,3 +363,59 @@ resource "aws_lb_target_group_attachment" "vault_nodes" {
   target_id        = aws_instance.vault.id
   port             = 8200
 }
+
+# Create an S3 bucket for backing up Vault Raft snapshots
+/*
+vault operator raft snapshot save backup.snap
+aws s3 cp backup.snap s3://vault-raft-backups-prod/
+*/
+
+resource "aws_s3_bucket" "vault_backup" {
+  bucket = "vault-raft-backups-prod"
+
+  tags = {
+    Name        = "vault-raft-backups"
+    Environment = "prod"
+  }
+}
+
+resource "aws_s3_bucket_versioning" "vault_backup" {
+  bucket = aws_s3_bucket.vault_backup.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "vault_backup" {
+  bucket = aws_s3_bucket.vault_backup.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "aws:kms"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "vault_backup" {
+  bucket = aws_s3_bucket.vault_backup.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "vault_backup" {
+  bucket = aws_s3_bucket.vault_backup.id
+
+  rule {
+    id     = "vault-backup-retention"
+    status = "Enabled"
+
+    expiration {
+      days = 30
+    }
+  }
+}
+
