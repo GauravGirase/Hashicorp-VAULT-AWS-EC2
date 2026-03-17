@@ -499,6 +499,7 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+/*
 resource "aws_instance" "vault_nodes" {
   count = 3
 
@@ -581,6 +582,7 @@ resource "aws_route" "vault_to_tgw" {
   destination_cidr_block = "10.1.0.0/24"  # application vpc cidr
   transit_gateway_id     = aws_ec2_transit_gateway.main.id
 }
+/*
 
 # /*
 # #To allow other VPCs to resolve vault.internal, associate them with the hosted zone.
