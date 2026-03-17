@@ -2,23 +2,40 @@
 set -eou pipefail
 exec > >(tee /var/log/vault-init.log) 2>&1
 
-NODE_NUM=2
-NODE_IP=10.0.2.10
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-REGION=ap-south-1
-KMS_KEY_ALIAS=alias/vault-auto-unseal
-BACKUP_BUCKET=vault-raft-backups-prod
-
 apt-get update
 apt-get install -y unzip awscli wget
+echo "awscli installed"
 
 curl -O https://releases.hashicorp.com/vault/1.15.5/vault_1.15.5_linux_amd64.zip
 unzip vault_1.15.5_linux_amd64.zip
 sudo mv vault /usr/local/bin/
 sudo chmod +x /usr/local/bin/vault
 vault --version
+echo "vault installed"
 
+for i in {1..10}; do
+  ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text 2>/dev/null)
+  if [ -n "$ACCOUNT_ID" ]; then
+    break
+  fi
+  echo "Waiting for IAM credentials..."
+  sleep 5
+done
+
+if [ -z "$ACCOUNT_ID" ]; then
+  echo "Failed to get AWS account ID"
+  exit 1
+fi
+
+echo "Account ID: $ACCOUNT_ID"
 # Create vault user
+NODE_NUM=2
+NODE_IP=10.0.2.10
+REGION=ap-south-1
+KMS_KEY_ALIAS=alias/vault-auto-unseal
+BACKUP_BUCKET=vault-raft-backups-prod
+
+
 useradd --system --home /etc/vault.d --shell /bin/false vault
 
 
