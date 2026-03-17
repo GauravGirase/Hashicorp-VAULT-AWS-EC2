@@ -75,6 +75,29 @@ resource "aws_iam_policy" "vault_s3_backup" {
   })
 }
 
+# Secrets Manager Access to upload backup token and bootstrap tokens
+resource "aws_iam_policy" "secrets_access" {
+  name = "secrets-access-policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:CreateSecret",
+          "secretsmanager:PutSecretValue",
+          "secretsmanager:UpdateSecret",
+          "secretsmanager:DescribeSecret",
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:ListSecrets"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # For logs and SSM management.
 resource "aws_iam_role_policy_attachment" "ssm" {
   role       = aws_iam_role.vault_ec2_role.name
@@ -94,6 +117,11 @@ resource "aws_iam_role_policy_attachment" "kms" {
 resource "aws_iam_role_policy_attachment" "s3_backup" {
   role       = aws_iam_role.vault_ec2_role.name
   policy_arn = aws_iam_policy.vault_s3_backup.arn
+}
+
+resource "aws_iam_role_policy_attachment" "secrets_access" {
+  role       = aws_iam_role.vault_ec2_role.name
+  policy_arn = aws_iam_policy.secrets_access.arn
 }
 
 # Creation of Instance Profile (Required for EC2)
@@ -592,4 +620,42 @@ resource "aws_route" "vault_to_tgw" {
 #   vpc_id  = aws_vpc.vpc2.id
 # }
 # */
+
+# Bastion host (Deployer)
+resource "aws_security_group" "bastion_sg" {
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_key_pair" "deployer" {
+  key_name   = "deployer-key"
+  public_key = file("~/.ssh/id_rsa.pub")
+}
+
+resource "aws_instance" "bastion" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t2.micro"
+
+  subnet_id              = aws_subnet.public_subnet.id
+  vpc_security_group_ids = [aws_security_group.bastion_sg.id]
+  key_name               = aws_key_pair.deployer.key_name
+
+  tags = {
+    Name = "bastion"
+  }
+}
+
 

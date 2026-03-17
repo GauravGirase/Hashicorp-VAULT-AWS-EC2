@@ -49,8 +49,8 @@ chown -R vault:vault /opt/vault
 chmod 700 /opt/vault/data
 
 # Pull TLS certs from SSM
-aws ssm get-parameter --name /vault/tls/ca-cert --with-decryption \
---query Parameter.Value --output text > /etc/vault/tls/ca.crt
+aws --region ap-south-1 ssm get-parameter --name /vault/tls/ca-cert --with-decryption \
+--query Parameter.Value --output text | sudo tee /etc/vault/tls/ca.crt > /dev/null
 
 aws ssm get-parameter --name /vault/tls/node-${NODE_NUM}-cert --with-decryption \
 --query Parameter.Value --output text > /etc/vault/tls/vault.crt
