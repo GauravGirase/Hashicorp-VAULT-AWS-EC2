@@ -504,4 +504,69 @@ chmod +x /usr/local/bin/vault-backup.sh
 echo '0 */6 * * * vault /usr/local/bin/vault-backup.sh >> /var/log/vault/backup.log 2>&1' | crontab -u vault -
 ```
 
-## Workload integration
+## Workload integration - EKS
+### Install vault secrets operator on EKS
+```bash
+helm repo add hashicorp https://helm.release.hashicorp/com
+helm repo update
+```
+### Create namespace
+```bash
+kubectl create ns vault-secrets-operator
+```
+### Install VSO
+```bash
+helm install vault-secrets-operator hashicorp/vault-secrets-operator \
+--namespace vault-secrets-operator \
+--set defaultVaultConnection.enabled=true \
+--set defaultVaultConnection.address=https://vault.internal:8200 \
+--set defaultVaultConnection.skipTLSVerify=false \
+--set defaultVaultConnection.caCertSecret=vault-ca-cert
+```
+### Create CA cert secret so, VSO can verify vault's TLS
+```bash
+kubectl create secret generic vault-ca-cert \
+--from-file=ca.crt=/path/to/vault-ca.crt \
+-n vault-secrets-operator
+```
+
+### Create VaultAuth and VaultStaticSecret for a service
+```bash
+kubectl create namespace payments
+kubectl create serviceaccount payments-sa -n payments
+```
+- VaultAuth-tells VSO how to authenticate
+```bash
+# vault-auth.yaml
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: vault-auth
+  namespace: payments
+spec:
+  method: kubernetes
+  mount: kubernetes
+  kubernetes:
+    role: payments-readonly
+    serviceAccount: payments-sa
+```
+- VaultStaticSecret - syncs a KV secret into a k8s secret
+```bash
+# vault-static-secret.yaml
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: payments-config
+  namespace: payments
+spec:
+  type: kv-v2
+  mount: secret
+  path: payments/config
+  destination:
+    name: payments-config
+    create: true
+  refreshAfter: 30s
+  vaultAuthRef: vault-auth
+```
+
+
