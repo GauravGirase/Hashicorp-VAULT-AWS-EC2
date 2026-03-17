@@ -445,4 +445,63 @@ vault token revoke <ROOT_TOKEN>
 ```bash
 vault operator generate-root -init
 ```
+## Backup , Monitoring & Operational setup
+### Create a dedicated toke for backup
+- Create a policy file:
+```bash
+# raft-snapshot-policy.hcl
+path "sys/storage/raft/snapshot" {
+  capabilities = ["read"]
+}
+```
+- Write the policy
+```bash
+vault policy write raft-snapshot-policy raft-snapshot-policy.hcl
+```
+- Create a token for backups
+```bash
+vault token create \
+  -policy=raft-snapshot-policy \
+  -ttl=24h
+```
+- save token to secrets manager "vault/backup-token"
+### Automated Raft snapshot backup to s3
+```bash
+# vi /usr/local/bin/vault-backup.sh
+#!/bin/bash
+set -eou pipefail
 
+export VAULT_ADDR=https://127.0.0.0.1:8200
+export VAULT_CACERT=/etc/vault/tls/ca.crt
+
+BACKUP_BUCKET="vault-raft-backups-prod-gaurav17march2026"
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+SNANPSHOT_FILE=/tmp/vault-snapshot-${TIMESTAMP}.snap
+
+# Get token from secrets manager 
+VAULT_TOKEN=$(aws secretsmanager get-secret-value \
+--secret-id vault/backup-token \
+--query SecretString --output text)
+
+export VAULT_TOKEN
+
+# Take snapshot
+vault operator raft snapshot save $SNANPSHOT_FILE
+
+# Upload to S3
+aws s3 cp $SNANPSHOT_FILE s3://${BACKUP_BUCKET}/snapshots/vault-snapshot-${TIMESTAMP}.snap
+
+# Clean up
+rm -f $SNANPSHOT_FILE
+
+echo "Bacup complete: vault-snapshot-${TIMESTAMP}.snap"
+```
+```bash
+chmod +x /usr/local/bin/vault-backup.sh
+```
+### Schedule with cron (every 6 hrs)
+```bash
+echo '0 */6 * * * vault /usr/local/bin/vault-backup.sh >> /var/log/vault/backup.log 2>&1' | crontab -u vault -
+```
+
+## Workload integration
