@@ -1,4 +1,19 @@
-# Hashicorp-VAULT-AWS-EC2## Install
+# Hashicorp-VAULT-AWS-EC2
+## Architecture
+!["vault-architecture"](/doc/architecture.png)
+## Summary
+This project implements a highly available and production-ready deployment of HashiCorp Vault on Amazon EC2 using Infrastructure as Code with Terraform.
+
+The architecture consists of a 3-node Vault cluster configured with integrated storage (Raft) to ensure high availability and fault tolerance. Each node is securely deployed with TLS encryption using a self-signed Certificate Authority, enabling encrypted communication between clients and cluster members.
+
+### The setup includes:
+- Automated infrastructure provisioning using Terraform
+- Secure cluster formation with Raft consensus
+- TLS-enabled communication across all nodes
+- Initalization and unsealing workflow
+- Configuration of the KV secrets engine for secure secret storage
+This project demonstrates best practices for deploying Vault in a cloud environment, focusing on security, scalability, and reliability, and serves as a strong foundation for extending into advanced features such as auto-unseal, dynamic secrets, and fine-grained access control.
+## Install
 - aws cli
 - terraform
 
@@ -25,6 +40,7 @@ cfssl gencert -initca ca-csr.json | cfssljson -bare ca
 # verify
 ca-config.json  ca-csr.json  ca-key.pem  ca.csr  ca.pem
 ```
+!["cert generation"](doc/1-generate-CA.png)
 ### Generate certificate for each Node
 ```bash
 vi vault-node-1-csr.json
@@ -196,6 +212,7 @@ sudo -E vault operator init \
 -recovery-threshold=3 \
 -format=json | tee /tmp/vault-init.json
 ```
+!["vault status"](/doc/vault-status.png)
 
 ### vault-init.json
 ```bash
@@ -233,10 +250,17 @@ vault secrets list
 vault kv put secret/hello value="Vault is working!"
 vault kv get secret/hello
 ```
+!["Vault login"](doc/3-vault-login.png)
+### Create new secrets
+!["new secret"](doc/4-create-secrets.png)
+### Secrets list
+!["Vault login"](doc/4-secrets-list.png)
 ### Verify Raft cluster information
 ```bash
 vault operator raft list-peers
 ```
+!["raft cluster"](doc/6-raft-cluster-info.png)
+
 ## Store this vault-init.json in secret manager
 ```bash
 cat /tmp/vault-init.json | aws --region ap-south-1 secretsmanager create-secret \
